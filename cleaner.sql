@@ -927,3 +927,121 @@ INSERT INTO pago VALUES (28,'PayPal','ak-std-000022','2009-01-13',8489);
 INSERT INTO pago VALUES (30,'PayPal','ak-std-000024','2009-01-16',7863);
 INSERT INTO pago VALUES (35,'PayPal','ak-std-000025','2007-10-06',3321);
 INSERT INTO pago VALUES (38,'PayPal','ak-std-000026','2006-05-26',1171);
+
+
+/* 1. Tabla fantasma, temporal o dual*/
+SELECT '01' codigo, 'Bruno Diaz' empleado FROM DUAL
+UNION
+SELECT '02' codigo, 'Clark Kent' empleado FROM DUAL;
+
+
+/* 2. Consultar ciudad y código de empleado
+Filtrar por ciudad = 'MADRID' y empleados 11 y 30*/
+
+SELECT cl.ciudad, em.codigo_empleado
+FROM cliente cl
+JOIN empleado em
+  ON em.codigo_empleado = cl.codigo_empleado_rep_ventas
+WHERE UPPER(cl.ciudad) = 'MADRID'
+AND em.codigo_empleado IN (11,30);
+
+
+/* 3. Contar registros de clientes en Madrid asociados a empleados 11 y 30*/
+
+SELECT COUNT(*) total_registros
+FROM cliente cl
+JOIN empleado em
+  ON em.codigo_empleado = cl.codigo_empleado_rep_ventas
+WHERE UPPER(cl.ciudad) = 'MADRID'
+AND em.codigo_empleado IN (11,30);
+
+
+/* 4. Contar registros agrupados por empleado para Madrid (empleados 11 y 30)*/
+
+SELECT em.codigo_empleado, COUNT(*) total_registros
+FROM cliente cl
+JOIN empleado em
+  ON em.codigo_empleado = cl.codigo_empleado_rep_ventas
+WHERE UPPER(cl.ciudad) = 'MADRID'
+AND em.codigo_empleado IN (11,30)
+GROUP BY em.codigo_empleado;
+
+
+/* 5. Contar registros agrupados por ciudad para empleados 11 y 30 */
+
+SELECT cl.ciudad, COUNT(*) total_registros
+FROM cliente cl
+JOIN empleado em
+  ON em.codigo_empleado = cl.codigo_empleado_rep_ventas
+WHERE em.codigo_empleado IN (11,30)
+GROUP BY cl.ciudad
+ORDER BY cl.ciudad DESC;
+
+
+/* 6. Subconsulta: obtener total de registros por ciudadpara empleados 11 y 30*/
+
+SELECT tabla.ciudad, tabla.total_registros
+FROM (
+    SELECT cl.ciudad, COUNT(*) total_registros
+    FROM cliente cl
+    JOIN empleado em
+      ON em.codigo_empleado = cl.codigo_empleado_rep_ventas
+    WHERE em.codigo_empleado IN (11,30)
+    GROUP BY cl.ciudad
+) tabla;
+
+
+/* 7. UNION con dato adicional manual (Barcelona = 10)*/
+
+SELECT tabla.ciudad, tabla.total_registros
+FROM (
+    SELECT cl.ciudad, COUNT(*) total_registros
+    FROM cliente cl
+    JOIN empleado em
+      ON em.codigo_empleado = cl.codigo_empleado_rep_ventas
+    WHERE em.codigo_empleado IN (11,30)
+    GROUP BY cl.ciudad
+) tabla
+UNION
+SELECT 'Barcelona' ciudad, 10 total_registros
+FROM DUAL
+ORDER BY ciudad DESC;
+
+
+/* 8. Uso de funciones de formato (LPAD / RPAD) para mostrar valores como texto formateado*/
+
+SELECT cl.ciudad,
+       COUNT(*) total_registros,
+       LPAD(COUNT(*), 10, '0') total_registros_lpad,
+       RPAD(COUNT(*), 10, '*') total_registros_rpad
+FROM cliente cl
+JOIN empleado em
+  ON em.codigo_empleado = cl.codigo_empleado_rep_ventas
+WHERE em.codigo_empleado IN (11,30)
+GROUP BY cl.ciudad;
+
+
+/*9. Consulta final:
+   - Sumar todos los registros
+   - Listar ciudades concatenadas
+   - Incluir Barcelona manualmente*/
+   
+SELECT 
+    SUM(TABLA2.TOTAL_REGISTROS) SUMA_REGISTROS,
+    GROUP_CONCAT(TABLA2.CIUDAD ORDER BY TABLA2.CIUDAD SEPARATOR ',') LISTA_CIUDAD
+FROM (
+    SELECT tabla.ciudad, CAST(tabla.total_registros AS SIGNED) TOTAL_REGISTROS
+    FROM (
+        SELECT cl.ciudad, COUNT(*) total_registros
+        FROM cliente cl
+        JOIN empleado em
+          ON em.codigo_empleado = cl.codigo_empleado_rep_ventas
+        WHERE em.codigo_empleado IN (11,30)
+        GROUP BY cl.ciudad
+    ) tabla
+
+    UNION
+
+    SELECT 'Barcelona' ciudad, 10 total_registros
+    FROM DUAL
+) TABLA2;
